@@ -1094,7 +1094,8 @@ if(FIREBASE_CONFIG.apiKey){
     auth.languageCode="es";
     /* En iPhone, Google no funciona dentro de la app instalada ni en Safari con anti-rastreo: se oculta */
     const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-    if(ios)$("aGoogle").hidden=true;
+    const standalone=navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
+    if(ios&&standalone)$("aGoogle").hidden=true;
     const db=F.getFirestore(app);
     let uid=null,t=0;
     const ref=()=>F.doc(db,"users",uid);
