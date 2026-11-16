@@ -144,6 +144,11 @@ ul.mvs{list-style:none;margin:0;padding:0}
 dialog{border:0;padding:0;background:transparent;color:var(--tx);width:min(480px,100%);max-width:100%;margin:auto}
 dialog::backdrop{background:rgba(0,0,0,.65)}
 .dlg{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:18px;max-height:88dvh;overflow:auto}
+#auth{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.authbox{width:100%;max-width:380px;background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:24px 20px}
+.authbox p{margin:10px 0 16px;color:var(--mut);font-size:14px;text-align:center}
+#aErr{min-height:20px;margin-top:8px;color:var(--bad);font-size:13px;text-align:center}
+.linkbtn{display:block;margin:14px auto 0;color:var(--mut);font-size:13px;text-decoration:underline;padding:6px}
 .dlg h3{margin:0 0 4px;font-size:18px}.dlg p{margin:0 0 12px;color:var(--mut);font-size:13.5px}
 .brow{display:flex;align-items:center;gap:10px;padding:6px 0}
 .brow span{flex:1;display:flex;align-items:center;gap:8px}
@@ -353,9 +358,28 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
   <button class="btn ghost" id="impJson">Restaurar copia de seguridad</button>
   <button class="btn ghost" id="demo">Cargar datos de ejemplo</button>
   <button class="btn ghost danger" id="wipe">Borrar todos los datos</button>
+  <div id="acctBox" hidden>
+    <span class="lab">Cuenta</span>
+    <p id="acctInfo" style="margin:0 0 4px"></p>
+    <button class="btn ghost" id="logout" type="button">Cerrar sesión</button>
+  </div>
   <button class="btn ghost" data-close>Cerrar</button>
   <input type="file" id="file" accept=".json" hidden>
 </div></dialog>
+
+<div id="auth" hidden>
+  <form class="authbox" id="authForm" autocomplete="on">
+    <div class="brand" style="justify-content:center;font-size:22px"><div class="logo">$</div>Finanzas</div>
+    <p id="authSub">Inicia sesión para ver y guardar tus datos en todos tus dispositivos.</p>
+    <input class="fld" id="aMail" type="email" placeholder="Correo electrónico" autocomplete="email" required>
+    <input class="fld" id="aPass" type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="current-password" minlength="6" required style="margin-top:10px">
+    <div id="aErr" role="alert"></div>
+    <button class="btn" id="aLogin" type="submit">Iniciar sesión</button>
+    <button class="btn ghost" id="aReg" type="button" style="margin-top:10px">Crear cuenta</button>
+    <button class="btn ghost" id="aGoogle" type="button" style="margin-top:10px">Continuar con Google</button>
+    <button class="linkbtn" id="aReset" type="button">¿Olvidaste tu contraseña?</button>
+  </form>
+</div>
 
 <script>
 /* ---------- Configuración ---------- */
@@ -375,12 +399,28 @@ function initCats(){
   if(!ok)S.cats=JSON.parse(JSON.stringify(DEF_CATS));
   CATS=S.cats;
 }
-const KEY="finanzas.v1";
-let S={tx:[],cur:"COP",budgets:{},theme:"dark",cats:null,chat:[]};
+let KEY="finanzas.v1";
+const BLANK=()=>({tx:[],cur:"COP",budgets:{},theme:"dark",cats:null,chat:[]});
+let S=BLANK();
 try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&Array.isArray(r.tx))S=Object.assign(S,r)}catch(e){}
 if(!CURS[S.cur])S.cur="COP";
 initCats();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{S.upd=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__cloudPush)window.__cloudPush()};
+/* Cambia de usuario: carga sus datos (locales y/o de la nube) y refresca la interfaz */
+function adoptState(d){S=Object.assign(BLANK(),d||{});initCats();if(!CURS[S.cur])S.cur="COP";_nf={};renderChips();$("curSel").value=S.cur;refreshMoneyInputs();render();renderChat()}
+function useUser(uid,cloud){
+  KEY="finanzas.v1."+uid;
+  const ok=r=>r&&Array.isArray(r.tx);
+  let local=null;try{local=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!ok(local)){ /* primer inicio en este dispositivo: reclama los datos anteriores sin cuenta */
+    try{const old=JSON.parse(localStorage.getItem("finanzas.v1"));if(ok(old)&&old.tx.length){local=old;localStorage.removeItem("finanzas.v1")}}catch(e){}
+  }
+  const c=[local,cloud].filter(ok).sort((a,b)=>(b.upd||0)-(a.upd||0))[0]||null;
+  adoptState(c);
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  return !cloud||c!==cloud; /* true = hay que subir a la nube */
+}
+function leaveUser(){KEY="finanzas.v1.anon";adoptState(null)}
 
 const $=id=>document.getElementById(id);
 const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1008,6 +1048,78 @@ let lastW=innerWidth;
 addEventListener("resize",()=>{if(innerWidth!==lastW){lastW=innerWidth;clearTimeout(window._rt);window._rt=setTimeout(render,150)}});
 
 $("date").value=today();renderChips();render();renderChat();
+</script>
+
+<script type="module">
+/* ---------- Cuentas en la nube (Firebase Auth + Firestore) ----------
+   Pega aquí la configuración de tu app web de Firebase (son claves públicas).
+   Si lo dejas vacío, la app funciona sin inicio de sesión, solo en este dispositivo. */
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyDJ8L8H2GnvY0ZXjrp06jwPxji0_e4KGp4",
+  authDomain:"financebro-4ac7b.firebaseapp.com",
+  projectId:"financebro-4ac7b",
+  appId:"1:481255418068:web:c4ffc4a462b4174a483341"
+};
+if(FIREBASE_CONFIG.apiKey){
+  const V="10.12.2",B="https://www.gstatic.com/firebasejs/"+V+"/";
+  const $=id=>document.getElementById(id);
+  $("auth").hidden=false;$("authSub").textContent="Cargando…";
+  try{
+    const [{initializeApp},A,F]=await Promise.all([import(B+"firebase-app.js"),import(B+"firebase-auth.js"),import(B+"firebase-firestore.js")]);
+    const app=initializeApp(FIREBASE_CONFIG),auth=A.getAuth(app);auth.languageCode="es";
+    const db=F.getFirestore(app);
+    let uid=null,t=0;
+    const ref=()=>F.doc(db,"users",uid);
+    const sync=(m)=>{const el=$("acctInfo");if(el&&auth.currentUser)el.textContent=auth.currentUser.email+" · "+m};
+    async function push(){
+      if(!uid)return;
+      try{await F.setDoc(ref(),{data:JSON.stringify(S),upd:S.upd||Date.now()});sync("sincronizado ✓")}
+      catch(e){sync("sin conexión: se guarda en este dispositivo")}
+    }
+    window.__cloudPush=()=>{clearTimeout(t);t=setTimeout(push,700)};
+    const msg=c=>({
+      "auth/invalid-email":"El correo no es válido.",
+      "auth/missing-password":"Escribe tu contraseña.",
+      "auth/weak-password":"La contraseña debe tener al menos 6 caracteres.",
+      "auth/email-already-in-use":"Ese correo ya tiene cuenta. Inicia sesión.",
+      "auth/invalid-credential":"Correo o contraseña incorrectos.",
+      "auth/user-not-found":"Correo o contraseña incorrectos.",
+      "auth/wrong-password":"Correo o contraseña incorrectos.",
+      "auth/too-many-requests":"Demasiados intentos. Espera un momento.",
+      "auth/network-request-failed":"Sin conexión a internet.",
+      "auth/popup-closed-by-user":"",
+      "auth/cancelled-popup-request":"",
+      "auth/operation-not-allowed":"Este método no está activado en Firebase.",
+      "auth/unauthorized-domain":"Este dominio no está autorizado en Firebase."
+    }[c]??"No se pudo completar. Inténtalo de nuevo.");
+    const err=(e)=>{$("aErr").textContent=typeof e==="string"?e:msg(e&&e.code)};
+    const busy=b=>["aLogin","aReg","aGoogle"].forEach(i=>$(i).disabled=b);
+    const run=async f=>{err("");busy(true);try{await f()}catch(e){err(e)}busy(false)};
+    $("authForm").onsubmit=e=>{e.preventDefault();run(()=>A.signInWithEmailAndPassword(auth,$("aMail").value.trim(),$("aPass").value))};
+    $("aReg").onclick=()=>{if(!$("authForm").reportValidity())return;run(()=>A.createUserWithEmailAndPassword(auth,$("aMail").value.trim(),$("aPass").value))};
+    $("aGoogle").onclick=()=>run(()=>A.signInWithPopup(auth,new A.GoogleAuthProvider()));
+    $("aReset").onclick=()=>{
+      const m=$("aMail").value.trim();if(!m){err("Escribe tu correo arriba y vuelve a tocar aquí.");return}
+      run(async()=>{await A.sendPasswordResetEmail(auth,m);err("Te enviamos un correo para restablecer la contraseña.")});
+    };
+    $("logout").onclick=()=>{$("setDlg").close();A.signOut(auth)};
+    A.onAuthStateChanged(auth,async user=>{
+      if(!user){
+        uid=null;leaveUser();
+        $("acctBox").hidden=true;$("authSub").textContent="Inicia sesión para ver y guardar tus datos en todos tus dispositivos.";
+        $("aPass").value="";$("auth").hidden=false;return;
+      }
+      uid=user.uid;
+      let cloud=null,failed=false;
+      try{const s=await F.getDoc(ref());if(s.exists())cloud=JSON.parse(s.data().data)}catch(e){failed=true}
+      const needPush=useUser(uid,cloud);
+      $("acctBox").hidden=false;$("auth").hidden=true;sync(failed?"sin conexión":"conectado");
+      if(needPush&&!failed)push();
+    });
+  }catch(e){
+    $("authSub").textContent="No se pudo cargar el inicio de sesión (revisa tu conexión).";
+  }
+}
 </script>
 </body>
 </html>
