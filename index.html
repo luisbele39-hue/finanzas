@@ -363,6 +363,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
   <button class="btn ghost" id="impJson">Restaurar copia de seguridad</button>
   <button class="btn ghost" id="demo">Cargar datos de ejemplo</button>
   <button class="btn ghost danger" id="wipe">Borrar todos los datos</button>
+  <button class="btn ghost installBtn" type="button" hidden>⬇ Instalar app en este teléfono</button>
   <div id="acctBox" hidden>
     <span class="lab">Cuenta</span>
     <p id="acctInfo" style="margin:0 0 4px"></p>
@@ -383,6 +384,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
     <button class="btn ghost" id="aReg" type="button" style="margin-top:10px">Crear cuenta</button>
     <button class="btn ghost" id="aGoogle" type="button" style="margin-top:10px">Continuar con Google</button>
     <button class="linkbtn" id="aReset" type="button">¿Olvidaste tu contraseña?</button>
+    <button class="btn ghost installBtn" type="button" hidden>⬇ Instalar app</button>
   </form>
 </div>
 
@@ -1057,6 +1059,15 @@ $("date").value=today();renderChips();render();renderChat();
 
 <script>
 if("serviceWorker" in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+/* Botón "Instalar app" (Chrome/Edge/Samsung en Android y escritorio) */
+let _inst=null;
+const _btns=()=>document.querySelectorAll(".installBtn");
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();_inst=e;_btns().forEach(b=>b.hidden=false)});
+addEventListener("appinstalled",()=>{_inst=null;_btns().forEach(b=>b.hidden=true)});
+document.addEventListener("click",async e=>{
+  if(!e.target.closest||!e.target.closest(".installBtn")||!_inst)return;
+  _inst.prompt();try{await _inst.userChoice}catch(_){}_inst=null;_btns().forEach(b=>b.hidden=true);
+});
 </script>
 
 <script type="module">
