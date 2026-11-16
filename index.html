@@ -1075,7 +1075,15 @@ if(FIREBASE_CONFIG.apiKey){
   $("auth").hidden=false;$("authSub").textContent="Cargando…";
   try{
     const [{initializeApp},A,F]=await Promise.all([import(B+"firebase-app.js"),import(B+"firebase-auth.js"),import(B+"firebase-firestore.js")]);
-    const app=initializeApp(FIREBASE_CONFIG),auth=A.getAuth(app);auth.languageCode="es";
+    const app=initializeApp(FIREBASE_CONFIG);
+    /* Persistencia con respaldo (Safari/iPhone a veces bloquea IndexedDB) */
+    let auth;
+    try{auth=A.initializeAuth(app,{persistence:[A.indexedDBLocalPersistence,A.browserLocalPersistence,A.browserSessionPersistence],popupRedirectResolver:A.browserPopupRedirectResolver})}
+    catch(e){auth=A.getAuth(app)}
+    auth.languageCode="es";
+    /* En iPhone, Google no funciona dentro de la app instalada ni en Safari con anti-rastreo: se oculta */
+    const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+    if(ios)$("aGoogle").hidden=true;
     const db=F.getFirestore(app);
     let uid=null,t=0;
     const ref=()=>F.doc(db,"users",uid);
@@ -1101,7 +1109,11 @@ if(FIREBASE_CONFIG.apiKey){
       "auth/operation-not-allowed":"Este método no está activado en Firebase.",
       "auth/unauthorized-domain":"Este dominio no está autorizado en Firebase."
     }[c]??"No se pudo completar. Inténtalo de nuevo.");
-    const err=(e)=>{$("aErr").textContent=typeof e==="string"?e:msg(e&&e.code)};
+    const err=(e)=>{
+      if(typeof e==="string"){$("aErr").textContent=e;return}
+      const m=msg(e&&e.code);
+      $("aErr").textContent=m===""?"":(m.startsWith("No se pudo")?m+" ("+((e&&e.code)||(e&&e.message)||"error")+")":m);
+    };
     const busy=b=>["aLogin","aReg","aGoogle"].forEach(i=>$(i).disabled=b);
     const run=async f=>{err("");busy(true);try{await f()}catch(e){err(e)}busy(false)};
     $("authForm").onsubmit=e=>{e.preventDefault();run(()=>A.signInWithEmailAndPassword(auth,$("aMail").value.trim(),$("aPass").value))};
