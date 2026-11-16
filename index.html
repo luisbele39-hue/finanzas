@@ -147,6 +147,9 @@ ul.mvs{list-style:none;margin:0;padding:0}
 .gact{display:flex;gap:8px;margin-top:8px}
 .gact .chip{padding:5px 11px;font-size:12.5px}
 .bi.done .sub{color:var(--inc)}
+.mv .emo{width:22px;text-align:center;flex:none;font-size:17px}
+.mv[data-aid]{cursor:pointer}
+select.fld{appearance:none;-webkit-appearance:none}
 
 /* toast */
 #toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:80;display:flex;gap:14px;align-items:center;max-width:92vw}
@@ -273,6 +276,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
       <input class="amt num" id="amt" inputmode="decimal" aria-label="Importe" required>
       <span class="lab">Categoría</span>
       <div class="chips" id="chips"></div>
+      <div id="accWrap" hidden><span class="lab">Cuenta</span><div class="chips" id="accChips"></div></div>
       <span class="lab">Fecha</span>
       <input class="fld" type="date" id="date" required>
       <span class="lab">Nota (opcional)</span>
@@ -301,6 +305,10 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
     <div class="card"><h2>¿En qué se va tu dinero?</h2><div id="split"></div></div>
 
     <div class="card"><h2>Presupuestos por categoría <button class="lnk" id="budBtn" type="button">Editar</button></h2><div id="buds"></div></div>
+
+    <div class="card"><h2>Mis cuentas <button class="lnk" id="acctBtn" type="button">Nueva cuenta</button></h2><div id="accts"></div></div>
+
+    <div class="card"><h2>Deudas <button class="lnk" id="debtBtn" type="button">Nueva deuda</button></h2><div id="debts"></div></div>
 
     <div class="card"><h2>Metas de ahorro <button class="lnk" id="goalBtn" type="button">Nueva meta</button></h2><div id="goals"></div></div>
 
@@ -370,6 +378,52 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
   <h3 id="apTitle">Aportar</h3><p>¿Cuánto vas a sumar a esta meta?</p>
   <input class="fld num" id="apAmt" data-money="1">
   <button class="btn" type="submit" value="ok">Sumar a la meta</button>
+  <button class="btn ghost" type="button" data-close>Cancelar</button>
+</form></dialog>
+
+<dialog id="acctDlg"><form method="dialog" class="dlg" id="acctForm">
+  <h3 id="acctTitle">Nueva cuenta</h3><p>Dónde tienes tu dinero: efectivo, banco, tarjeta… Cada movimiento que apuntes en una cuenta actualiza su saldo.</p>
+  <span class="lab">Nombre</span>
+  <input class="fld" id="aName" maxlength="24" placeholder="Ej: Bancolombia, Billetera, Nequi" required>
+  <span class="lab">Tipo</span>
+  <select class="fld" id="aType"><option value="banco">🏦 Banco</option><option value="efectivo">💵 Efectivo</option><option value="ahorro">🐖 Ahorros</option><option value="tarjeta">💳 Tarjeta de crédito</option></select>
+  <span class="lab" id="aBalLab">Saldo actual</span>
+  <input class="fld num" id="aBal" data-money="1">
+  <button class="btn" type="submit" value="ok">Guardar</button>
+  <button class="btn ghost danger" type="button" id="aDel" hidden>Eliminar cuenta</button>
+  <button class="btn ghost" type="button" data-close>Cancelar</button>
+</form></dialog>
+
+<dialog id="trDlg"><form method="dialog" class="dlg" id="trForm">
+  <h3>Transferir entre cuentas</h3><p>Mueve dinero de una cuenta a otra. No cuenta como gasto ni como ingreso.</p>
+  <span class="lab">Desde</span><select class="fld" id="trFrom"></select>
+  <span class="lab">Hacia</span><select class="fld" id="trTo"></select>
+  <span class="lab">Importe</span><input class="fld num" id="trAmt" data-money="1">
+  <button class="btn" type="submit" value="ok">Transferir</button>
+  <button class="btn ghost" type="button" data-close>Cancelar</button>
+</form></dialog>
+
+<dialog id="debtDlg"><form method="dialog" class="dlg" id="debtForm">
+  <h3 id="debtTitle">Nueva deuda</h3><p>Un préstamo, un crédito o algo que le debes a alguien.</p>
+  <span class="lab">Nombre</span>
+  <input class="fld" id="dName" maxlength="30" placeholder="Ej: Crédito del celular" required>
+  <span class="lab">¿Cuánto era la deuda en total?</span>
+  <input class="fld num" id="dTotal" data-money="1">
+  <span class="lab">¿Cuánto has pagado ya?</span>
+  <input class="fld num" id="dPaid" data-money="1">
+  <span class="lab">Cuota mensual (opcional)</span>
+  <input class="fld num" id="dPay" data-money="1">
+  <button class="btn" type="submit" value="ok">Guardar</button>
+  <button class="btn ghost danger" type="button" id="dDel" hidden>Eliminar deuda</button>
+  <button class="btn ghost" type="button" data-close>Cancelar</button>
+</form></dialog>
+
+<dialog id="payDlg"><form method="dialog" class="dlg" id="payForm">
+  <h3 id="payTitle">Abonar</h3><p>¿Cuánto vas a pagar de esta deuda?</p>
+  <input class="fld num" id="payAmt" data-money="1">
+  <label class="chk"><input type="checkbox" id="payTx" checked><span>Registrarlo también como gasto de hoy</span></label>
+  <div id="payAccWrap" hidden><span class="lab">Pagado desde</span><select class="fld" id="payAcc"></select></div>
+  <button class="btn" type="submit" value="ok">Abonar</button>
   <button class="btn ghost" type="button" data-close>Cancelar</button>
 </form></dialog>
 
@@ -445,7 +499,7 @@ function initCats(){
   CATS=S.cats;
 }
 let KEY="finanzas.v1";
-const BLANK=()=>({tx:[],cur:"COP",budgets:{},theme:"dark",cats:null,chat:[],rec:[],goals:[]});
+const BLANK=()=>({tx:[],cur:"COP",budgets:{},theme:"dark",cats:null,chat:[],rec:[],goals:[],accts:[],debts:[],transfers:[]});
 let S=BLANK();
 try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&Array.isArray(r.tx))S=Object.assign(S,r)}catch(e){}
 if(!CURS[S.cur])S.cur="COP";
@@ -518,13 +572,13 @@ const _nrm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 function recDate(m,day){const[y,mo]=m.split("-").map(Number);return m+"-"+String(Math.min(day,new Date(y,mo,0).getDate())).padStart(2,"0")}
 /* Apunta los fijos pendientes hasta hoy. Devuelve true si añadió algo. */
 function applyRec(){
-  if(!Array.isArray(S.rec))S.rec=[];if(!Array.isArray(S.goals))S.goals=[];
+  ["rec","goals","accts","debts","transfers"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
   let ch=false;const td=today(),cm=td.slice(0,7);
   S.rec.forEach(r=>{
     let m=shiftMonth(r.last,1),n=0;
     while(m<=cm&&n<36){
       const d=recDate(m,r.day);if(d>td)break;
-      if(!S.tx.some(t=>t.rec===r.id&&t.date.slice(0,7)===m))S.tx.push({id:newId(),tipo:r.tipo,amt:r.amt,date:d,cat:r.cat,desc:r.desc,rec:r.id});
+      if(!S.tx.some(t=>t.rec===r.id&&t.date.slice(0,7)===m)){const t={id:newId(),tipo:r.tipo,amt:r.amt,date:d,cat:r.cat,desc:r.desc,rec:r.id};if(r.acc)t.acc=r.acc;S.tx.push(t)}
       r.last=m;ch=true;m=shiftMonth(m,1);n++;
     }
   });
@@ -570,7 +624,7 @@ function render(){
   bars();
   budgets(list);
   split(list,inc,exp);
-  goals();recs();
+  accounts();debts();goals();recs();
   movements(list);
 }
 
@@ -680,6 +734,7 @@ function renderChips(){
   if(!CATS[fType].some(c=>c[0]===fCat))fCat=CATS[fType][0][0];
   $("chips").innerHTML=CATS[fType].map(c=>`<button type="button" class="chip${c[0]===fCat?" on":""}" data-c="${esc(c[0])}"><i style="background:${c[1]}"></i>${esc(c[0])}</button>`).join("")+`<button type="button" class="chip add" data-new="1">+ Nueva</button>`;
   document.querySelectorAll("#seg button").forEach(b=>b.classList.toggle("on",b.dataset.t===fType));
+  renderAcc();
 }
 $("seg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;fType=b.dataset.t;fCat=CATS[fType][0][0];renderChips()});
 $("chips").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.new){openCat(fType);return}fCat=b.dataset.c;renderChips()});
@@ -691,13 +746,13 @@ function closeSheet(){sheet.classList.remove("on");$("backdrop").classList.remov
 $("fab").onclick=()=>{if(editId)endEdit();openSheet()};$("backdrop").onclick=closeSheet;
 const sumT=(l,tp)=>sum(l.filter(t=>t.tipo===tp).map(t=>t.amt));
 function startEdit(t){
-  editId=t.id;fType=t.tipo;fCat=t.cat;renderChips();setVal(amt,t.amt);$("date").value=t.date;$("desc").value=t.desc||"";
+  editId=t.id;fType=t.tipo;fCat=t.cat;fAcc=t.acc||"";renderChips();setVal(amt,t.amt);$("date").value=t.date;$("desc").value=t.desc||"";
   $("compTitle").textContent="Editar movimiento";$("subBtn").textContent="Guardar cambios";$("editCancel").hidden=false;$("recWrap").hidden=true;$("recChk").checked=false;
   openSheet();try{sheet.scrollIntoView({block:"nearest",behavior:"smooth"})}catch(_){}
 }
 function endEdit(){
   editId=null;$("compTitle").textContent="Añadir movimiento";$("subBtn").textContent="Añadir";$("editCancel").hidden=true;$("recWrap").hidden=false;$("recChk").checked=false;
-  setVal(amt,0);$("desc").value="";$("date").value=today();
+  setVal(amt,0);$("desc").value="";$("date").value=today();fAcc=null;renderAcc();
 }
 $("editCancel").onclick=()=>{endEdit();closeSheet()};
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
@@ -715,11 +770,12 @@ $("composer").addEventListener("submit",e=>{
   const d=$("date").value||today(),desc=$("desc").value.trim();
   if(editId){
     const t=S.tx.find(x=>x.id===editId);
-    if(t)Object.assign(t,{tipo:fType,amt:v,date:d,cat:fCat,desc});
+    if(t){Object.assign(t,{tipo:fType,amt:v,date:d,cat:fCat,desc});if(fAcc)t.acc=fAcc;else delete t.acc}
     save();month=d.slice(0,7);toast("Cambios guardados");endEdit();closeSheet();render();return;
   }
   const tx={id:newId(),tipo:fType,amt:v,date:d,cat:fCat,desc},rep=$("recChk").checked;
-  if(rep){const r={id:newId(),tipo:fType,amt:v,cat:fCat,desc,day:Number(d.slice(8)),last:d.slice(0,7)};S.rec.push(r);tx.rec=r.id}
+  if(fAcc)tx.acc=fAcc;
+  if(rep){const r={id:newId(),tipo:fType,amt:v,cat:fCat,desc,day:Number(d.slice(8)),last:d.slice(0,7)};if(fAcc)r.acc=fAcc;S.rec.push(r);tx.rec=r.id}
   S.tx.push(tx);if(rep)applyRec();
   save();month=d.slice(0,7);
   toast((fType==="gasto"?"Gasto":"Ingreso")+" guardado: "+money(v)+" · "+fCat+(rep?" · se repetirá cada mes":""));
@@ -1185,7 +1241,7 @@ $("file").onchange=e=>{
     if(confirm("Esto reemplazará tus datos actuales por la copia ("+d.tx.length+" movimientos). ¿Continuar?")){S=Object.assign({tx:[],cur:"COP",budgets:{},theme:S.theme,cats:null,rec:[],goals:[]},d);if(editId)endEdit();initCats();applyRec();renderChips();if(!CURS[S.cur])S.cur="COP";_nf={};save();$("curSel").value=S.cur;refreshMoneyInputs();render();$("setDlg").close()}
   }catch(_){alert("Archivo no válido.")}});e.target.value="";
 };
-$("wipe").onclick=()=>{if(confirm("¿Borrar TODOS tus movimientos, presupuestos, fijos y metas? No se puede deshacer.")){if(editId)endEdit();S.tx=[];S.budgets={};S.rec=[];S.goals=[];save();render();$("setDlg").close()}};
+$("wipe").onclick=()=>{if(confirm("¿Borrar TODOS tus movimientos, presupuestos, fijos, metas, cuentas y deudas? No se puede deshacer.")){if(editId)endEdit();S.tx=[];S.budgets={};S.rec=[];S.goals=[];S.accts=[];S.debts=[];S.transfers=[];fAcc=null;renderAcc();save();render();$("setDlg").close()}};
 $("demo").onclick=()=>{
   if(S.tx.length&&!confirm("Se añadirán movimientos de ejemplo a los que ya tienes. ¿Continuar?"))return;
   const f=cfg().f,rnd=n=>{const x=n*f;const s=f>=100?1000:f>=10?10:1;return Math.round(x/s)*s};
@@ -1207,6 +1263,117 @@ $("demo").onclick=()=>{
 
 let lastW=innerWidth;
 addEventListener("resize",()=>{if(innerWidth!==lastW){lastW=innerWidth;clearTimeout(window._rt);window._rt=setTimeout(render,150)}});
+
+/* ---------- Cuentas ---------- */
+let fAcc=null,acctId=null,debtId=null; /* fAcc: null = por defecto, "" = ninguna, número = id de cuenta */
+const ATYPES={banco:["🏦","Banco"],efectivo:["💵","Efectivo"],ahorro:["🐖","Ahorros"],tarjeta:["💳","Tarjeta de crédito"]};
+const accBal=a=>a.init+sum(S.tx.filter(t=>t.acc===a.id).map(t=>t.tipo==="ingreso"?t.amt:-t.amt))+sum(S.transfers.map(t=>(t.to===a.id?t.amt:0)-(t.from===a.id?t.amt:0)));
+const accOpts=()=>S.accts.map(a=>`<option value="${a.id}">${ATYPES[a.type][0]} ${esc(a.name)} · ${esc(money(accBal(a)))}</option>`).join("");
+function renderAcc(){
+  const as=S.accts||[];$("accWrap").hidden=!as.length;
+  if(!as.length){fAcc=null;return}
+  if(fAcc===null||(fAcc!==""&&!as.some(a=>a.id===fAcc)))fAcc=as[0].id;
+  $("accChips").innerHTML=as.map(a=>`<button type="button" class="chip${a.id===fAcc?" on":""}" data-a="${a.id}">${ATYPES[a.type][0]} ${esc(a.name)}</button>`).join("")+`<button type="button" class="chip${fAcc===""?" on":""}" data-a="">Ninguna</button>`;
+}
+$("accChips").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;fAcc=b.dataset.a===""?"":Number(b.dataset.a);renderAcc()});
+function accounts(){
+  const el=$("accts"),as=S.accts;
+  if(!as.length){el.innerHTML='<div class="empty">Añade tus cuentas (banco, efectivo, tarjeta) para saber cuánto tienes en cada una y tu patrimonio total.<br><br><button class="chip" type="button" onclick="openAcct()" style="margin:auto">Añadir mi primera cuenta</button></div>';return}
+  const tot=sum(as.map(accBal)),debt=sum(S.debts.map(d=>Math.max(0,d.total-d.paid)));
+  el.innerHTML=`<p class="splithead">Tienes <b>${money(tot)}</b> entre tus cuentas${debt>0?` y debes <b>${money(debt)}</b>: tu patrimonio neto es <b>${money(tot-debt)}</b>`:""}.</p>
+  <ul class="mvs">${as.map(a=>{const b=accBal(a);return `<li class="mv" data-aid="${a.id}" title="Toca para editar"><span class="emo">${ATYPES[a.type][0]}</span><div class="mt"><b>${esc(a.name)}</b><small>${ATYPES[a.type][1]}</small></div><div class="ma num ${b<0?"exp":""}">${money(b)}</div></li>`}).join("")}</ul>
+  ${as.length>1?'<div class="gact"><button class="chip" type="button" id="trBtn">⇄ Transferir entre cuentas</button></div>':""}`;
+}
+["aBal","trAmt","dTotal","dPaid","dPay","payAmt"].forEach(i=>bindMoney($(i)));
+const balLab=()=>$("aBalLab").textContent=$("aType").value==="tarjeta"?"¿Cuánto debes hoy en la tarjeta?":"Saldo actual";
+$("aType").onchange=balLab;
+function openAcct(a){
+  acctId=a?a.id:null;$("acctTitle").textContent=a?"Editar cuenta":"Nueva cuenta";$("aDel").hidden=!a;
+  $("aName").value=a?a.name:"";$("aType").value=a?a.type:"banco";balLab();setVal($("aBal"),a?Math.abs(accBal(a)):0);
+  $("acctDlg").showModal();
+}
+$("acctBtn").onclick=()=>openAcct();
+$("acctForm").addEventListener("submit",e=>{
+  if(e.submitter&&e.submitter.value!=="ok")return;
+  const name=$("aName").value.trim(),type=$("aType").value,v=getVal($("aBal")),bal=type==="tarjeta"?-v:v;
+  if(!name){e.preventDefault();toast("Escribe un nombre");return}
+  const a=S.accts.find(x=>x.id===acctId);
+  if(a){a.name=name;a.type=type;a.init+=bal-accBal(a)}else S.accts.push({id:newId(),name,type,init:bal});
+  save();renderAcc();render();toast("Cuenta guardada");
+});
+$("aDel").onclick=()=>{
+  const a=S.accts.find(x=>x.id===acctId);if(!a)return;
+  S.accts=S.accts.filter(x=>x!==a);save();renderAcc();render();$("acctDlg").close();
+  toast("Cuenta eliminada. Sus movimientos se conservan.","Deshacer",()=>{S.accts.push(a);save();renderAcc();render()});
+};
+$("accts").addEventListener("click",e=>{
+  if(e.target.closest("#trBtn")){$("trFrom").innerHTML=$("trTo").innerHTML=accOpts();$("trTo").selectedIndex=1;setVal($("trAmt"),0);$("trDlg").showModal();return}
+  const li=e.target.closest("[data-aid]");if(!li)return;
+  const a=S.accts.find(x=>x.id==li.dataset.aid);if(a)openAcct(a);
+});
+$("trForm").addEventListener("submit",e=>{
+  if(e.submitter&&e.submitter.value!=="ok")return;
+  const from=Number($("trFrom").value),to=Number($("trTo").value),v=getVal($("trAmt"));
+  if(from===to){e.preventDefault();toast("Elige dos cuentas distintas");return}
+  if(!(v>0)){e.preventDefault();toast("Escribe un importe");return}
+  const t={id:newId(),from,to,amt:v,date:today()};S.transfers.push(t);save();render();
+  toast("Transferencia hecha: "+money(v),"Deshacer",()=>{S.transfers=S.transfers.filter(x=>x!==t);save();render()});
+});
+
+/* ---------- Deudas ---------- */
+function debts(){
+  const el=$("debts"),ds=S.debts;
+  if(!ds.length){el.innerHTML='<div class="empty">Apunta lo que debes y cada abono que hagas para ver cuánto te falta y cuándo terminas.<br><br><button class="chip" type="button" onclick="openDebt()" style="margin:auto">Añadir una deuda</button></div>';return}
+  el.innerHTML=`<div class="bud">${ds.map(d=>{
+    const p=d.total>0?d.paid/d.total:0,done=p>=1,left=Math.max(0,d.total-d.paid);
+    let sub;
+    if(done)sub="¡Deuda pagada! 🎉";
+    else{sub="debes "+money(left)+" · "+Math.round(p*100)+"% pagado";if(d.pay>0){const n=Math.ceil(left/d.pay);sub+=` · a ${money(d.pay)} al mes terminas en ${n} ${n===1?"mes":"meses"}`}}
+    return `<div class="bi${done?" done":""}" data-id="${d.id}"><div class="top"><span>${esc(d.name)}</span><span class="num">${money(d.paid)} / ${money(d.total)}</span></div><div class="trk"><div style="width:${Math.min(100,p*100)}%"></div></div><div class="sub num">${sub}</div><div class="gact">${done?"":'<button class="chip" type="button" data-ap="1">+ Abonar</button>'}<button class="chip" type="button" data-ed="1">Editar</button></div></div>`}).join("")}</div>`;
+}
+function openDebt(d){
+  debtId=d?d.id:null;$("debtTitle").textContent=d?"Editar deuda":"Nueva deuda";$("dDel").hidden=!d;
+  $("dName").value=d?d.name:"";setVal($("dTotal"),d?d.total:0);setVal($("dPaid"),d?d.paid:0);setVal($("dPay"),d?d.pay:0);
+  $("debtDlg").showModal();
+}
+$("debtBtn").onclick=()=>openDebt();
+$("debtForm").addEventListener("submit",e=>{
+  if(e.submitter&&e.submitter.value!=="ok")return;
+  const name=$("dName").value.trim(),total=getVal($("dTotal")),paid=getVal($("dPaid")),pay=getVal($("dPay"));
+  if(!name||!(total>0)){e.preventDefault();toast("Escribe un nombre y el total de la deuda");return}
+  const d=S.debts.find(x=>x.id===debtId);
+  if(d)Object.assign(d,{name,total,paid,pay});else S.debts.push({id:newId(),name,total,paid,pay});
+  save();render();toast("Deuda guardada");
+});
+$("dDel").onclick=()=>{
+  const d=S.debts.find(x=>x.id===debtId);if(!d)return;
+  S.debts=S.debts.filter(x=>x!==d);save();render();$("debtDlg").close();
+  toast("Deuda eliminada","Deshacer",()=>{S.debts.push(d);save();render()});
+};
+$("debts").addEventListener("click",e=>{
+  const b=e.target.closest("button"),card=e.target.closest("[data-id]");if(!b||!card)return;
+  const d=S.debts.find(x=>x.id==card.dataset.id);if(!d)return;
+  if(b.dataset.ed)openDebt(d);
+  else if(b.dataset.ap){
+    debtId=d.id;$("payTitle").textContent="Abonar a "+d.name;setVal($("payAmt"),d.pay>0?Math.min(d.pay,d.total-d.paid):0);
+    $("payTx").checked=true;$("payAccWrap").hidden=!S.accts.length;$("payAcc").innerHTML=accOpts();$("payDlg").showModal();
+  }
+});
+$("payTx").onchange=()=>$("payAccWrap").hidden=!S.accts.length||!$("payTx").checked;
+$("payForm").addEventListener("submit",e=>{
+  if(e.submitter&&e.submitter.value!=="ok")return;
+  const v=getVal($("payAmt")),d=S.debts.find(x=>x.id===debtId);
+  if(!(v>0)||!d){e.preventDefault();toast("Escribe un importe");return}
+  d.paid+=v;
+  if($("payTx").checked){
+    if(!CATS.gasto.some(c=>c[0]==="Deudas"))CATS.gasto.push(["Deudas","#c7a27c","n"]);
+    const t={id:newId(),tipo:"gasto",amt:v,date:today(),cat:"Deudas",desc:"Abono: "+d.name};
+    if(S.accts.length)t.acc=Number($("payAcc").value);
+    S.tx.push(t);month=today().slice(0,7);
+  }
+  save();renderChips();render();
+  toast(d.paid>=d.total?"¡Terminaste de pagar "+d.name+"! 🎉":"Abonaste "+money(v)+" a "+d.name);
+});
 
 $("date").value=today();if(applyRec())save();renderChips();render();renderChat();
 /* Si la app queda abierta y cambia el día, apunta los fijos que tocan */
