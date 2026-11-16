@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c0b09">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Finanzas</title>
+<title>FinanceBro</title>
+<meta name="apple-mobile-web-app-title" content="FinanceBro"><meta name="application-name" content="FinanceBro">
 <style>
 :root{
   --bg:#0c0b09;--card:#151412;--card2:#1b1a17;--bd:#292620;--tx:#f3efe6;--mut:#8f897b;
@@ -240,7 +241,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><div class="logo">$</div>Finanzas</div>
+  <div class="brand"><div class="logo">$</div>FinanceBro</div>
   <div class="today" id="todayLbl"></div>
   <div class="pill mnav"><button id="prev" aria-label="Mes anterior">‹</button><div class="lbl" id="monthLbl" title="Ir al mes actual"></div><button id="next" aria-label="Mes siguiente">›</button></div>
   <select class="cur" id="curSel" aria-label="Moneda"></select>
@@ -316,7 +317,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
   </div>
 </section>
 
-<p class="foot">Tus datos viven solo en este dispositivo · Haz copias desde ⚙ Ajustes</p>
+<p class="foot">Tus datos se guardan en tu cuenta y se sincronizan en todos tus dispositivos · Copias en ⚙ Ajustes</p>
 </div>
 
 <button class="fab" id="fab" aria-label="Añadir movimiento">+</button>
@@ -369,7 +370,7 @@ dialog::backdrop{background:rgba(0,0,0,.65)}
 
 <div id="auth" hidden>
   <form class="authbox" id="authForm" autocomplete="on">
-    <div class="brand" style="justify-content:center;font-size:22px"><div class="logo">$</div>Finanzas</div>
+    <div class="brand" style="justify-content:center;font-size:22px"><div class="logo">$</div>FinanceBro</div>
     <p id="authSub">Inicia sesión para ver y guardar tus datos en todos tus dispositivos.</p>
     <input class="fld" id="aMail" type="email" placeholder="Correo electrónico" autocomplete="email" required>
     <input class="fld" id="aPass" type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="current-password" minlength="6" required style="margin-top:10px">
@@ -755,7 +756,7 @@ function avgSaving(){
 const none=p=>`No tengo movimientos ${p.label}. Prueba con otro mes o registra tus datos con el botón +.`;
 
 function aHelp(){
-  return `¡Hola! Soy tu asistente de finanzas. Respondo con los movimientos que has registrado en la app (no uso internet, tus datos no salen de tu dispositivo). Puedes preguntarme, por ejemplo:<ul>
+  return `¡Hola! Soy tu asistente de finanzas. Respondo con los movimientos que has registrado en la app (no uso internet para responder: solo leo tus movimientos guardados en tu cuenta). Puedes preguntarme, por ejemplo:<ul>
   <li>¿Cuánto gasté en comida este mes?</li><li>¿En qué gasto más?</li><li>¿Cómo voy comparado con el mes pasado?</li>
   <li>¿Puedo comprar algo de 500 mil?</li><li>¿Cómo ahorro 2 millones en 6 meses?</li><li>¿Cuánto me queda por día?</li><li>Dame consejos</li></ul>`;
 }
